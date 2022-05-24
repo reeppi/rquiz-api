@@ -1,0 +1,80 @@
+[build]
+    functions="functions"
+
+[dev]
+[dev.https]
+certFile = "localhost.pem"
+keyFile = "localhost-key.pem"
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
+    from="/listall"
+    status=200 
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
+    from="/failureJson"
+    status=200 
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
+    from="/list"
+    status=200 
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
+    from="/profile"
+    status=200 
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
+    from="/auth/facebook"
+    status=200 
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
+    from="/auth/facebook/callback"
+    status=200 
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
+    from="/auth/google"
+    status=200 
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
+    from="/auth/google/callback"
+    status=200 
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
+    from="/quiz"
+    status=200 
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
+    from="/edit"
+    status=200 
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
+    from="/addscore"
+    status=200 
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
+    from="/delete"
+    status=200 
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
+    from="/scoreboard"
+    status=200 
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
+    from="/getToken"
+    status=200 
+
+
+
