@@ -1,4 +1,5 @@
-const quiz = require("./quiz");
+const { MongoClient } = require('mongodb');
+const { config } = require('./config');
 
 module.exports = function()
 {
@@ -10,13 +11,19 @@ router.post('/edit', cors(), (req, res) => {
             return res.json({error:"Visalla ei nimeä."});
     else
         name = req.query.name.toLowerCase();
-    let nameReg= name.replace(/\/|\\/gi,"");
+    //let nameReg= name.replace(/\/|\\/gi,"");
+
+    var  sError = "Tietyyppi virhe";
 
     if ( !req.is('json') )
-        return res.json({error:"Tietotyyppi virhe."});
+        return res.json({error:sError});
 
-    if ( Object.keys(req.body).length > 0 )
+    if ( Object.keys(req.body).length > 0  )
+    {
+         if ( ! req.body.hasOwnProperty("questions") ) return res.json({error:sError});
+         if ( ! Array.isArray(req.body.questions) ) return res.json({error:sError});
         editQuiz(res,req,name);
+    }
     else
         res.json({error:"Visa on tyhjä."});
 });
@@ -43,6 +50,7 @@ router.get('/list', cors(), (req, res) => {
 
 async function listQuizes(res,email) {
 try {
+    const client = new MongoClient(config.mongoUri);
     await client.connect();
     const database = client.db("qb");
     const userCollection = database.collection("users");
@@ -62,6 +70,7 @@ try {
 
 async function deleteQuiz(res,req,quizName) {
     try {
+        const client = new MongoClient(config.mongoUri);
         await client.connect();
         console.log("Connected!");
         const database = client.db("qb");
@@ -87,7 +96,7 @@ async function deleteQuiz(res,req,quizName) {
             {
             res.json({error: "Visaa "+quizName+" ei ole."});
         }
-      //  await client.connect();
+
     } finally {
         await client.close();
     }
@@ -95,6 +104,7 @@ async function deleteQuiz(res,req,quizName) {
 
 async function editQuiz(res,req,quizName) {
     try {
+        const client = new MongoClient(config.mongoUri);
         await client.connect();
         console.log("Connected!");
         const database = client.db("qb");
@@ -126,7 +136,7 @@ async function editQuiz(res,req,quizName) {
                 if ( questions.email == req.user.email ) {
                     await addQuizToUser(req.user.email,quizName);
                     await questionCollection.replaceOne(query,req.body,options);
-                    let error="Visa "+quizName+" muokattu.";
+                    let error="Visa "+quizName+" tallennettu.";
                     console.log(error);
                     res.json({error});
                 } else 
@@ -144,6 +154,8 @@ async function editQuiz(res,req,quizName) {
 
 async function deleteQuizFromUser(email,quizName)
 {
+    const client = new MongoClient(config.mongoUri);
+    await client.connect();
     const database = client.db("qb");
     const userCollection = database.collection("users");
     const query = { email: email.toLowerCase() };
@@ -163,6 +175,8 @@ async function deleteQuizFromUser(email,quizName)
 
 async function addQuizToUser(email,quizName)
 {
+    const client = new MongoClient(config.mongoUri);
+    await client.connect();
     const database = client.db("qb");
     const userCollection = database.collection("users");
     const query = { email: email.toLowerCase() };

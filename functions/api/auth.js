@@ -69,7 +69,7 @@ router.get(
 );
 
 router.get('/failureJson', cors(), function(req, res) {
-  res.json({error:"Tunnistauminen epäonnistui. Yritä kirjautua uudestaan. "});
+  res.json({error:"Tunnistautuminen epäonnistui. Yritä kirjautua uudestaan. "});
 });
 
 }

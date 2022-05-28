@@ -4,17 +4,25 @@
   "description": "quiz backend",
   "main": "index.js",
   "dependencies": {
+    "aws-sdk": "^2.1144.0",
     "body-parser": "^1.20.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "express": "^4.17.2",
+    "express-fileupload": "^1.4.0",
+    "file-upload": "0.0.0",
+    "formidable": "^3.2.4",
+    "fs": "0.0.1-security",
     "jsonwebtoken": "^8.5.1",
+    "mime": "^3.0.0",
     "mongodb": "^4.3.1",
     "passport": "^0.5.2",
     "passport-facebook": "^3.0.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.0",
-    "serverless-http": "^2.7.0"
+    "serverless-http": "^2.7.0",
+    "sharp": "^0.30.5",
+    "uuid": "^7.0.3"
   },
   "devDependencies": {},
   "scripts": {
