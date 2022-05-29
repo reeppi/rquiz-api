@@ -50,7 +50,7 @@ module.exports = function()
 
  async function addScore(res,quizName,name,score,email) {
     try {
-        const client = new MongoClient(config.mongoUri);
+        client = new MongoClient(config.mongoUri);
         await client.connect();
         console.log("Connected!!!");
         const database = client.db("qb");
@@ -89,7 +89,7 @@ module.exports = function()
     
 async function scoreboard (res,quizName) {
     try {
-        const client = new MongoClient(config.mongoUri);
+        client = new MongoClient(config.mongoUri);
         await client.connect();
         console.log("Connected!!!");
         const database = client.db("qb");

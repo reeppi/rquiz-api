@@ -1,3 +1,4 @@
+const { deleteObjects, listObjects } = require('./s3');
 const { MongoClient } = require('mongodb');
 const { config } = require('./config');
 
@@ -13,15 +14,15 @@ router.post('/edit', cors(), (req, res) => {
         name = req.query.name.toLowerCase();
     //let nameReg= name.replace(/\/|\\/gi,"");
 
-    var  sError = "Tietyyppi virhe";
+    var  error = "Tietyyppi virhe";
 
     if ( !req.is('json') )
-        return res.json({error:sError});
+        return res.json({error});
 
     if ( Object.keys(req.body).length > 0  )
     {
-         if ( ! req.body.hasOwnProperty("questions") ) return res.json({error:sError});
-         if ( ! Array.isArray(req.body.questions) ) return res.json({error:sError});
+         if ( ! req.body.hasOwnProperty("questions") ) return res.json({error});
+         if ( ! Array.isArray(req.body.questions) ) return res.json({error});
         editQuiz(res,req,name);
     }
     else
@@ -50,7 +51,7 @@ router.get('/list', cors(), (req, res) => {
 
 async function listQuizes(res,email) {
 try {
-    const client = new MongoClient(config.mongoUri);
+    client = new MongoClient(config.mongoUri);
     await client.connect();
     const database = client.db("qb");
     const userCollection = database.collection("users");
@@ -70,7 +71,7 @@ try {
 
 async function deleteQuiz(res,req,quizName) {
     try {
-        const client = new MongoClient(config.mongoUri);
+        client = new MongoClient(config.mongoUri);
         await client.connect();
         console.log("Connected!");
         const database = client.db("qb");
@@ -104,14 +105,14 @@ async function deleteQuiz(res,req,quizName) {
 
 async function editQuiz(res,req,quizName) {
     try {
-        const client = new MongoClient(config.mongoUri);
+        client = new MongoClient(config.mongoUri);
         await client.connect();
         console.log("Connected!");
         const database = client.db("qb");
         const questionCollection = database.collection("questions");
         const query = { name: quizName.toLowerCase() };
         const options = { projection: { _id: 0, name: 1, email: 1 }, };
-        req.body.name=quizName;
+        req.body.name=quizName.toLowerCase();
         req.body.email=req.user.email;
 
         //console.log("SIZE::"+req.get("content-length"));
@@ -136,6 +137,7 @@ async function editQuiz(res,req,quizName) {
                 if ( questions.email == req.user.email ) {
                     await addQuizToUser(req.user.email,quizName);
                     await questionCollection.replaceOne(query,req.body,options);
+                    await removeFiles(quizName,req.body);
                     let error="Visa "+quizName+" tallennettu.";
                     console.log(error);
                     res.json({error});
@@ -152,9 +154,32 @@ async function editQuiz(res,req,quizName) {
     }
 }
 
+async function removeFiles(quizName,body) {
+  dirFiles = [];
+  data= await listObjects(quizName+"/");
+  data.Contents.forEach(function(d) { dirFiles.push(d.Key) } );
+  //console.log(dirFiles);
+  modFiles = [];
+  body.questions.forEach(function(d) {  
+      if ( d.hasOwnProperty("image")) 
+        if ( d.image != "" )
+            modFiles.push(quizName+"/"+d.image) } 
+      );
+   //console.log(modFiles);
+   rFiles = []; 
+    dirFiles.forEach( function(d) {
+        if ( !modFiles.includes(d) )
+         rFiles.push(d);
+    });
+    if ( rFiles.length > 0 ) 
+        await deleteObjects(rFiles);
+    console.log("Poistetaan : ");
+    console.log(rFiles);
+}
+
 async function deleteQuizFromUser(email,quizName)
 {
-    const client = new MongoClient(config.mongoUri);
+    client = new MongoClient(config.mongoUri);
     await client.connect();
     const database = client.db("qb");
     const userCollection = database.collection("users");
@@ -175,7 +200,7 @@ async function deleteQuizFromUser(email,quizName)
 
 async function addQuizToUser(email,quizName)
 {
-    const client = new MongoClient(config.mongoUri);
+    client = new MongoClient(config.mongoUri);
     await client.connect();
     const database = client.db("qb");
     const userCollection = database.collection("users");

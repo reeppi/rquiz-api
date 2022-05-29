@@ -22,9 +22,10 @@ module.exports = function()
 async function listQuizesAll(req,res) 
 {
     try {
-        const client = new MongoClient(config.mongoUri);
+        console.log("LISTQUIZESLLA");
+        client = new MongoClient(config.mongoUri);
         await client.connect();
-        const database = client1.db("qb");
+        const database = client.db("qb");
         const qCollection = database.collection("questions");
         const query = { public:true };
         const options = { projection: { _id: 0, name:1, public:1, title:1  }, };
@@ -42,9 +43,9 @@ async function listQuizesAll(req,res)
 async function getQuiz(res,quizName) 
 {
     try {
-        const client = new MongoClient(config.mongoUri);
+        client = new MongoClient(config.mongoUri);
         await client.connect();
-        const database = client1.db("qb");
+        const database = client.db("qb");
         const qCollection = database.collection("questions");
         const query = { name: quizName.toLowerCase() };
         const options = { projection: { _id: 0 }, };

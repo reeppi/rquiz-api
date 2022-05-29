@@ -13,6 +13,11 @@ keyFile = "localhost-key.pem"
 
 [[redirects]]
     to="/.netlify/functions/api/api"
+    from="/deletefile"
+    status=200 
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
     from="/listall"
     status=200 
 

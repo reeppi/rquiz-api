@@ -19,7 +19,7 @@ router.post('/upload', cors(), async (req, res) => {
     try {
     var error = await checkQuestions(req,quizName,questionNumber);
       if (error!="") return res.json({error});
-    } catch (err) { return res.json({error:err}) } 
+    } catch (error) { return res.json({error}) } 
     
     if (!req.files || Object.keys(req.files).length === 0) 
         return res.json({error:"ei mitään upattavaa"});
@@ -32,11 +32,14 @@ router.post('/upload', cors(), async (req, res) => {
 
       try {
         await sharp(file.data).resize(200, 200, {  fit: sharp.fit.inside, withoutEnlargement: true }).toBuffer().then ( data => { newData=data;} ) ;
-        console.log("Length : "+ newData.length);
         var cc= await getDirSize(quizName);
-        cc +=newData.length;
-        if ( cc >= 1000000 ) return res.json({error:"Visan kuvien tallenustila täysi"});
+        console.log("Hakemiston koko : "+cc.size+" Kuvia yhteensä : "+cc.count);
+        cc.size+=newData.length;
+        if ( cc.size >= 1000000 ) return res.json({error:"Visan kuvien tallenustila täysi"});
+        if ( cc.count > 20 ) return res.json({error:"Maksimimäärä (20) kuvia lisätty."});
+        
         await putObject(quizName+"/"+newFileName, newData, newData.length);
+
         var sError = await updateImageToQuiz(req,quizName,questionNumber,newFileName); 
         if ( sError == "" )
           return res.json({error:"Kuva lisätty.", done:newFileName});
@@ -49,11 +52,13 @@ router.post('/upload', cors(), async (req, res) => {
       }
 });
 
+
+
 }
 
 async function updateImageToQuiz(req,quizName,qNumber,fileName) {
   try {
-      const client = new MongoClient(config.mongoUri);
+      client = new MongoClient(config.mongoUri);
       await client.connect();
       const database = client.db("qb");
       const questionCollection = database.collection("questions");
@@ -81,19 +86,18 @@ async function updateImageToQuiz(req,quizName,qNumber,fileName) {
 
 async function checkQuestions(req,quizName,qNumber) {
   try {
-      const client = new MongoClient(config.mongoUri);
+      client = new MongoClient(config.mongoUri);
       await client.connect();
       const database = client.db("qb");
       const questionCollection = database.collection("questions");
-      const query = { name: quizName.toLowerCase() };
+      const query = { name: quizName };
       const options = { projection: { _id: 0, name: 1, email: 1, questions: 1 }, };
       const quiz = await questionCollection.findOne(query,options);
           if ( quiz == null ) 
             return "Visa pitää tallentaa ensiksi";
           else 
           {
-            if ( quiz.email != req.user.email ) 
-              return req.user.email+" ei ole visan "+quizName+" omistaja";
+            if ( quiz.email != req.user.email ) return req.user.email+" ei ole visan "+quizName+" omistaja";
             if ( ! quiz.hasOwnProperty("questions") ) return "Tietotyyppi virhe";
             if ( ! Array.isArray(quiz.questions) ) return "Tietotyyppi virhe";
             if ( qNumber >= quiz.questions.length || qNumber < 0 ) 

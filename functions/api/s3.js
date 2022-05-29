@@ -42,9 +42,10 @@ exports.getDirSize = async function(dir) {
 exports.getDirSize = function(dir) {
   return new Promise(function(resolve, reject) {
   exports.listObjects(dir).then(function(data) { 
-    var sizeF =0;
-    data.Contents.forEach(function(d) { sizeF+=d.Size } ); 
-    resolve(sizeF);
+    var size =0;
+    var count = 0;
+    data.Contents.forEach(function(d) { count+=1; size+=d.Size } ); 
+    resolve({size,count});
     } ).catch(err => { reject(err);   } );
   });
 };
