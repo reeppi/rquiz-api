@@ -1,9 +1,9 @@
 ## rquiz-api 
-Esimerkki yksinkertaisen tietovisan node-apista. <br />
+Yksinkertaisen tietovisan nodeJs api.  <br />
 Käyttää mongodb:tä kysymysten ja pistetaulun tietokantana.<br />
 <br/>
-React-native : https://github.com/reeppi/rquiz (obsolete)<br />
 Angular web-app:  https://tietovisa.netlify.app<br />
-Avainsanat : Node, Express, Passport, Mongodb, Netlify. <br />
+React-native : https://github.com/reeppi/rquiz (vanhentunut)<br />
+Avainsanat : Javascript, NodeJs, Express, Passport (oAuth), Mongodb, Netlify, AWS, REST, Sharp. <br />
 ---------------------- <br />
 tuomas.kokki@outlook.com

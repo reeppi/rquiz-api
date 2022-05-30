@@ -83,8 +83,9 @@ async function deleteQuiz(res,req,quizName) {
         {
             if ( req.user.email == question.email )
             {
-                await deleteQuizFromUser(req.user.email,quizName);
+                await deleteQuizFromUser(req.user.email,quizName,client);
                 await questionCollection.deleteOne(query,options);
+                await removeDir(quizName);
                 let done = "Visa "+quizName+" poistettu.";
                 console.log(done);
                 res.json({done});
@@ -115,12 +116,10 @@ async function editQuiz(res,req,quizName) {
         req.body.name=quizName.toLowerCase();
         req.body.email=req.user.email;
 
-        //console.log("SIZE::"+req.get("content-length"));
-
         const questions = await questionCollection.findOne(query,options);
             if ( questions == null ) 
             {  
-                const success = await addQuizToUser(req.user.email,quizName);
+                const success = await addQuizToUser(req.user.email,quizName,client);
                 if ( success ) 
                 {
                     await questionCollection.insertOne(req.body);
@@ -135,7 +134,7 @@ async function editQuiz(res,req,quizName) {
             }   
             else {
                 if ( questions.email == req.user.email ) {
-                    await addQuizToUser(req.user.email,quizName);
+                    await addQuizToUser(req.user.email,quizName,client);
                     await questionCollection.replaceOne(query,req.body,options);
                     await removeFiles(quizName,req.body);
                     let error="Visa "+quizName+" tallennettu.";
@@ -154,18 +153,26 @@ async function editQuiz(res,req,quizName) {
     }
 }
 
+async function removeDir(quizName)
+{
+    console.log("removeDir "+quizName);
+    dirFiles = [];
+    data= await listObjects(quizName+"/");
+    data.Contents.forEach(function(d) { dirFiles.push(d.Key) } );
+    if ( dirFiles.length > 0 ) 
+        await deleteObjects(dirFiles);
+}
+
 async function removeFiles(quizName,body) {
   dirFiles = [];
   data= await listObjects(quizName+"/");
   data.Contents.forEach(function(d) { dirFiles.push(d.Key) } );
-  //console.log(dirFiles);
   modFiles = [];
   body.questions.forEach(function(d) {  
       if ( d.hasOwnProperty("image")) 
         if ( d.image != "" )
             modFiles.push(quizName+"/"+d.image) } 
       );
-   //console.log(modFiles);
    rFiles = []; 
     dirFiles.forEach( function(d) {
         if ( !modFiles.includes(d) )
@@ -177,10 +184,8 @@ async function removeFiles(quizName,body) {
     console.log(rFiles);
 }
 
-async function deleteQuizFromUser(email,quizName)
+async function deleteQuizFromUser(email,quizName,client)
 {
-    client = new MongoClient(config.mongoUri);
-    await client.connect();
     const database = client.db("qb");
     const userCollection = database.collection("users");
     const query = { email: email.toLowerCase() };
@@ -198,10 +203,8 @@ async function deleteQuizFromUser(email,quizName)
 }
 
 
-async function addQuizToUser(email,quizName)
+async function addQuizToUser(email,quizName,client)
 {
-    client = new MongoClient(config.mongoUri);
-    await client.connect();
     const database = client.db("qb");
     const userCollection = database.collection("users");
     const query = { email: email.toLowerCase() };

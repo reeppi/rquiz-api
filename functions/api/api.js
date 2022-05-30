@@ -16,7 +16,7 @@ app.use(express.json({ limit: '15kb' }));
 app.use(passport.initialize());
 
 app.use(fileUpload({
-    limits: { fileSize: 2 * 1024 * 1024 },
+    limits: { fileSize: 3 * 1024 * 1024 },
   }));
 
 checkAccess = (req, res, next) => {

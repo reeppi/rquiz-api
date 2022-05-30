@@ -2,6 +2,7 @@ const { putObject, getDirSize, deleteObjects } = require('./s3');
 const sharp = require('sharp');
 const { MongoClient } = require('mongodb');
 const { config } = require('./config');
+const path = require('path');
 
 module.exports = function()
 {
@@ -25,10 +26,13 @@ router.post('/upload', cors(), async (req, res) => {
         return res.json({error:"ei mitään upattavaa"});
     if(!req.files.image ||req.files.image == undefined) 
         return res.json({error:"Virhe: Kuvaa ei ole määritetty."});
+
       var file = req.files.image;
       var newData;
       console.log("UPLOADI "+file.name);
-      var newFileName=file.name;
+      var genName = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
+      var ext=path.parse(file.name).ext
+      var newFileName=genName+ext;
 
       try {
         await sharp(file.data).resize(200, 200, {  fit: sharp.fit.inside, withoutEnlargement: true }).toBuffer().then ( data => { newData=data;} ) ;
@@ -36,7 +40,7 @@ router.post('/upload', cors(), async (req, res) => {
         console.log("Hakemiston koko : "+cc.size+" Kuvia yhteensä : "+cc.count);
         cc.size+=newData.length;
         if ( cc.size >= 1000000 ) return res.json({error:"Visan kuvien tallenustila täysi"});
-        if ( cc.count > 20 ) return res.json({error:"Maksimimäärä (20) kuvia lisätty."});
+        if ( cc.count >= 30 ) return res.json({error:"Maksimimäärä (30) kuvia lisätty."});
         
         await putObject(quizName+"/"+newFileName, newData, newData.length);
 

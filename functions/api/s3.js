@@ -78,4 +78,4 @@ exports.putObject = function(filename, buffer, contentLength) {
     });
   };
 
-  //https://github.com/ONLYOFFICE/server/blob/e761fbdf178a2a3cd31b89ea2d21ddccda4d8cac/Common/sources/storage-s3.js#L151
+ 
