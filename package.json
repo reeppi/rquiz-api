@@ -4,6 +4,7 @@
   "description": "quiz backend",
   "main": "index.js",
   "dependencies": {
+    "await-lock": "1.2.1",
     "aws-sdk": "^2.1144.0",
     "body-parser": "^1.20.0",
     "cookie-parser": "^1.4.6",

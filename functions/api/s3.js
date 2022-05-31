@@ -52,8 +52,7 @@ exports.getDirSize = function(dir) {
 
 exports.putObject = function(filename, buffer, contentLength) {
     return new Promise(function(resolve, reject) {
-      var params = {Bucket: bucketName, Key: filename, Body: buffer,
-        ContentLength: contentLength, ContentType: mime.getType(filename), ACL:'public-read'};
+      var params = {Bucket: bucketName, Key: filename, Body: buffer, ContentLength: contentLength, ContentType: mime.getType(filename), ACL:'public-read'};
         s3.putObject(params, function(err, data) {
         if (err) {
           reject(err);

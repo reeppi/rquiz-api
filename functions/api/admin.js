@@ -4,54 +4,27 @@ const { config } = require('./config');
 
 module.exports = function()
 {
-
 router.post('/edit', cors(), (req, res) => {
-    var name;
-    console.log("Muokataan");
-    if ( !req.query.name || req.query.name === undefined ) 
-            return res.json({error:"Visalla ei nimeä."});
-    else
-        name = req.query.name.toLowerCase();
-    //let nameReg= name.replace(/\/|\\/gi,"");
-
-    var  error = "Tietyyppi virhe";
-
-    if ( !req.is('json') )
-        return res.json({error});
-
-    if ( Object.keys(req.body).length > 0  )
-    {
-         if ( ! req.body.hasOwnProperty("questions") ) return res.json({error});
-         if ( ! Array.isArray(req.body.questions) ) return res.json({error});
-        editQuiz(res,req,name);
-    }
-    else
-        res.json({error:"Visa on tyhjä."});
+    console.log("Edit");
+    editQuiz(res,req);
 });
-
 router.get('/delete', cors(), (req, res) => {
-    var name;
-    console.log("Poistetaan");
-    if ( !req.query.name || req.query.name === undefined ) 
-        return res.json({error:"Visalla ei nimeä."});
-    else
-        name = req.query.name.toLowerCase();
- //   let nameReg= name.replace(/\/|\\/gi,"");
-    deleteQuiz(res,req,name);
+    console.log("Delete");
+    deleteQuiz(res,req);
 });
-
 router.get('/list', cors(), (req, res) => {
-    if ( req.user != null ) 
-        listQuizes(res,req.user.email);
-    else
-        res.json({error:"List: Tuntematon virhe"});
+    console.log("List");
+    listQuizes(res,req);
 });
-
 }
 
-async function listQuizes(res,email) {
+async function listQuizes(res,req) {
 try {
     client = new MongoClient(config.mongoUri);
+    var email;
+    if ( req.user == null ) 
+        throw "Virhe";
+    email = req.user.email;
     await client.connect();
     const database = client.db("qb");
     const userCollection = database.collection("users");
@@ -61,57 +34,88 @@ try {
         if ( user != null ) 
             res.json({quiz:user.quiz});
         else
-            res.json({error:"Ei visoja käyttäjällä "+email});
+            throw "Ei visoja käyttäjällä "+email;
+} catch (error) { 
+    console.log(error); 
+    res.json({error});
 } finally {
     await client.close();
 }
 
 }
 
-
-async function deleteQuiz(res,req,quizName) {
+async function deleteQuiz(res,req) {
     try {
         client = new MongoClient(config.mongoUri);
+
+        if ( !req.query.name || req.query.name === undefined ) 
+            throw "Visalla ei nimeä.";
+        var quizName = req.query.name.toLowerCase();
+
         await client.connect();
-        console.log("Connected!");
         const database = client.db("qb");
         const questionCollection = database.collection("questions");
-        const query = { name: quizName.toLowerCase() };
+        const query = { name: quizName };
         const options = { projection: { _id: 0, name: 1, email: 1 }, };
         const question = await questionCollection.findOne(query,options);
-        if ( question != null )
+        if ( question != null ) 
         {
-            if ( req.user.email == question.email )
-            {
-                await deleteQuizFromUser(req.user.email,quizName,client);
-                await questionCollection.deleteOne(query,options);
-                await removeDir(quizName);
-                let done = "Visa "+quizName+" poistettu.";
-                console.log(done);
-                res.json({done});
-            } else {
-                let error = req.user.email+" ei ole visan "+quizName+" omistaja.";
-                console.log(error);
-                res.json({error});
-            }
-        } else 
-            {
-            res.json({error: "Visaa "+quizName+" ei ole."});
+            if ( req.user.email != question.email ) 
+                throw req.user.email+" ei ole visan "+quizName+" omistaja.";
+
+            await deleteQuizFromUser(req.user.email,quizName,client);
+            await questionCollection.deleteOne(query,options);
+            await deleteScoreboard(client,quizName);
+            await removeDir(quizName);
+            let done = "Visa "+quizName+" poistettu.";
+            console.log(done);
+            res.json({done});
+        }
+         else 
+        {
+            throw  "Visaa "+quizName+" ei ole.";
         }
 
+    } catch (error) { 
+        console.log(error); 
+        res.json({error});
     } finally {
         await client.close();
     }
 }
 
-async function editQuiz(res,req,quizName) {
+async function deleteScoreboard(client, quizName)
+{
+    try {
+        const database = client.db("qb");
+        const questionCollection = database.collection("scoreboard");
+        const query = { name: quizName };
+        const options = { projection: { _id: 0, name: 1 }, };
+        await questionCollection.deleteOne(query,options);
+    } catch (err) { throw(err); }
+}
+
+async function editQuiz(res,req) {
     try {
         client = new MongoClient(config.mongoUri);
+
+        if ( !req.query.name || req.query.name === undefined ) 
+             throw "Visalla ei nimeä.";
+        var quizName = req.query.name.toLowerCase();
+
+        var  errorDataType = "Tietyyppi virhe";
+        if ( !req.is('json') )
+            throw errorDataType;
+    
+        if ( Object.keys(req.body).length == 0  ) throw "Visa on tyhjä";        
+        if ( ! req.body.hasOwnProperty("questions") ) throw errorDataType;
+        if ( ! Array.isArray(req.body.questions) ) throw errorDataType;
+
         await client.connect();
         console.log("Connected!");
         const database = client.db("qb");
         const questionCollection = database.collection("questions");
-        const query = { name: quizName.toLowerCase() };
+        const query = { name: quizName };
         const options = { projection: { _id: 0, name: 1, email: 1 }, };
         req.body.name=quizName.toLowerCase();
         req.body.email=req.user.email;
@@ -119,51 +123,47 @@ async function editQuiz(res,req,quizName) {
         const questions = await questionCollection.findOne(query,options);
             if ( questions == null ) 
             {  
-                const success = await addQuizToUser(req.user.email,quizName,client);
-                if ( success ) 
-                {
-                    await questionCollection.insertOne(req.body);
-                    let error="Käyttäjän "+req.body.email+" Visa "+quizName+" lisätty.";
-                    console.log(error);
-                    res.json({error});
-                } else {
-                    let error="Maksimimäärä visoja lisätty";
-                    console.log(error);
-                    res.json({error});
-                }
+                await addQuizToUser(req.user.email,quizName,client);
+                await questionCollection.insertOne(req.body);
+                let error="Käyttäjän "+req.body.email+" Visa "+quizName+" Lisätty.";
+                console.log(error);
+                res.json({error});
             }   
             else {
-                if ( questions.email == req.user.email ) {
-                    await addQuizToUser(req.user.email,quizName,client);
-                    await questionCollection.replaceOne(query,req.body,options);
-                    await removeFiles(quizName,req.body);
-                    let error="Visa "+quizName+" tallennettu.";
-                    console.log(error);
-                    res.json({error});
-                } else 
-                {
-                    let error = req.user.email+" ei ole visan "+quizName+" omistaja.";
-                    console.log(error);
-                    res.json({error});
-                }
-                 
+                if ( questions.email != req.user.email ) 
+                    throw req.user.email+" ei ole visan "+quizName+" omistaja.";
+                
+                await addQuizToUser(req.user.email,quizName,client);
+                await questionCollection.replaceOne(query,req.body,options);
+                await removeFiles(quizName,req.body);
+                let error="Visa "+quizName+" tallennettu.";
+                console.log(error);
+                res.json({error});
+              
             }
-    } finally {
+    } catch (error) { 
+        console.log(error); 
+        res.json({error});
+    }
+     finally {
         await client.close();
     }
 }
 
 async function removeDir(quizName)
 {
+    try {
     console.log("removeDir "+quizName);
     dirFiles = [];
     data= await listObjects(quizName+"/");
     data.Contents.forEach(function(d) { dirFiles.push(d.Key) } );
     if ( dirFiles.length > 0 ) 
         await deleteObjects(dirFiles);
+    } catch(error) {  throw (error) }
 }
 
 async function removeFiles(quizName,body) {
+try {
   dirFiles = [];
   data= await listObjects(quizName+"/");
   data.Contents.forEach(function(d) { dirFiles.push(d.Key) } );
@@ -182,10 +182,12 @@ async function removeFiles(quizName,body) {
         await deleteObjects(rFiles);
     console.log("Poistetaan : ");
     console.log(rFiles);
+} catch(error) {  throw (error) }
 }
 
 async function deleteQuizFromUser(email,quizName,client)
 {
+    try {
     const database = client.db("qb");
     const userCollection = database.collection("users");
     const query = { email: email.toLowerCase() };
@@ -193,18 +195,23 @@ async function deleteQuizFromUser(email,quizName,client)
     const user = await userCollection.findOne(query,options);
     if ( user != null ) 
     {
-        if ( user.quiz.includes(quizName)) 
+        if (Array.isArray(user.quiz))
         {
-            const index = user.quiz.indexOf(quizName);
-            user.quiz.splice(index,1);
-            await userCollection.findOneAndReplace(query,user,options);
+            if ( user.quiz.includes(quizName)) 
+            {
+                const index = user.quiz.indexOf(quizName);
+                user.quiz.splice(index,1);
+                await userCollection.findOneAndReplace(query,user,options);
+            }
         }
     }
+    } catch (error) { throw(error); }
 }
 
 
 async function addQuizToUser(email,quizName,client)
 {
+    try {
     const database = client.db("qb");
     const userCollection = database.collection("users");
     const query = { email: email.toLowerCase() };
@@ -213,7 +220,6 @@ async function addQuizToUser(email,quizName,client)
     if ( user == null ) 
     {
         await userCollection.insertOne({email,quiz:[quizName]});
-        return true;
     } else {
         if ( !user.quiz.includes(quizName) )
         {
@@ -221,15 +227,14 @@ async function addQuizToUser(email,quizName,client)
             {
                 user.quiz.push(quizName);
                 await userCollection.findOneAndReplace(query,user,options);
-                return true;
             } 
             else {
-                return false;
+                throw "Maksimimäärä visoja lisätty!!";
             }
         }
         else { console.log("ei lisätty"); }
     }
-    return false;
+    } catch (error) { throw(error); }   
 }
 
 

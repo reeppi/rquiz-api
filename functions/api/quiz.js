@@ -4,25 +4,16 @@ const { config } = require('./config');
 module.exports = function()
 {
     router.get('/quiz', cors(), (req, res) => {
-        var name;
-        if ( !req.query.name || req.query.name === undefined ) 
-            name= 'test';
-        else
-            name = req.query.name;
-        let nameReg= name.replace(/\/|\\/gi,"");
-        getQuiz(res,nameReg);
+        getQuiz(res,req);
     })
-
     router.get('/listall', cors(), (req, res) => {
-            listQuizesAll(req,res);
+        listQuizesAll(res);
     });
-    
 }
 
-async function listQuizesAll(req,res) 
+async function listQuizesAll(res) 
 {
     try {
-        console.log("LISTQUIZESLLA");
         client = new MongoClient(config.mongoUri);
         await client.connect();
         const database = client.db("qb");
@@ -33,29 +24,36 @@ async function listQuizesAll(req,res)
         var quizArray = [];
         await quizes.forEach(function(dA) { quizArray.push({name:dA.name,title:dA.title,cat:""});} );
         res.json(quizArray);
-    } 
+    } catch(error) {
+        console.log(error);
+        res.json({error});
+    }
     finally {
         await client.close();
     }
 
 }
 
-async function getQuiz(res,quizName) 
+async function getQuiz(res,req) 
 {
     try {
         client = new MongoClient(config.mongoUri);
+        if ( !req.query.name || req.query.name === undefined ) 
+            throw "Anna visan tunnus";
+        quizName = req.query.name.toLowerCase();
         await client.connect();
         const database = client.db("qb");
         const qCollection = database.collection("questions");
-        const query = { name: quizName.toLowerCase() };
+        const query = { name: quizName };
         const options = { projection: { _id: 0 }, };
         const quiz = await qCollection.findOne(query,options);
         if (quiz == null ) 
-             res.json({error:"Visaa "+quizName+" ei ole olemassa."});
+             throw "Visaa "+quizName+" ei ole olemassa.";
         else
             res.json(quiz);
     } catch (error) {
-        console.error("error:"+error);
+        console.log(error);
+        res.json({error});
     } 
     finally {
         await client.close();
