@@ -44,7 +44,7 @@ passport.use(
       },
       (jwtPayload, done) => {
         if (!jwtPayload) {
-          return done('No token found...');
+          return done('Ei tokenia.');
         }
   
         return done(null, jwtPayload);

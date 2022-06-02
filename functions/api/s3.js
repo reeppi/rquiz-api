@@ -31,14 +31,7 @@ exports.listObjects = function(dir) {
     );
   });
 };
-/*
-exports.getDirSize = async function(dir) {
-    data = await exports.listObjects(dir);
-    var sizeF =0;
-    data.Contents.forEach(function(d) { sizeF+=d.Size } ); 
-    return sizeF;
-};
-*/
+
 exports.getDirSize = function(dir) {
   return new Promise(function(resolve, reject) {
   exports.listObjects(dir).then(function(data) { 

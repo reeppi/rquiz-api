@@ -33,17 +33,19 @@ router.post('/upload', cors(), async (req, res) => {
       var genName = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
       var ext=path.parse(file.name).ext
       var newFileName=genName+ext;
-      await sharp(file.data).resize(200, 200, {  fit: sharp.fit.inside, withoutEnlargement: true }).toBuffer().then ( data => { newData=data;} ) ;
+      await sharp(file.data).resize(360, 360, {  fit: sharp.fit.inside, withoutEnlargement: true }).toBuffer().then ( data => { newData=data;} ) ;
+      const metadata = await sharp(newData).metadata();
       var cc= await getDirSize(quizName);
+      
       //console.log("Hakemiston koko : "+cc.size+" Kuvia yhteensä : "+cc.count);
       cc.size+=newData.length;
-      if ( cc.size >= 1000000 ) throw "Visan kuvien tallenustila täysi";
+      if ( cc.size >= 2000000 ) throw "Visan kuvien tallenustila täysi";
       if ( cc.count >= 30 )  throw "Maksimimäärä (30) kuvia ylitetty";
     
       await putObject(quizName+"/"+newFileName, newData, newData.length);
-      await updateImageToQuiz(client,req,quizName,questionNumber,newFileName); 
+      await updateImageToQuiz(client,req,quizName,questionNumber,newFileName,metadata); 
 
-      res.json({error:"Kuva "+file.name+" lisätty.", done:newFileName});
+      res.json({error:"Kuva "+file.name+" lisätty.", done:newFileName, width:metadata.width, height:metadata.height});
       }
       catch (error) { 
         console.log(error); 
@@ -55,7 +57,7 @@ router.post('/upload', cors(), async (req, res) => {
 
 }
 
-async function updateImageToQuiz(client,req,quizName,qNumber,fileName) {
+async function updateImageToQuiz(client,req,quizName,qNumber,fileName,metadata) {
     try {
       const database = client.db("qb");
       const questionCollection = database.collection("questions");
@@ -71,6 +73,8 @@ async function updateImageToQuiz(client,req,quizName,qNumber,fileName) {
 
             await deleteObjects([quizName+"/"+quiz.questions[qNumber].image]);
             quiz.questions[qNumber].image = fileName;
+            quiz.questions[qNumber].width= metadata.width;
+            quiz.questions[qNumber].height= metadata.height;
             await questionCollection.findOneAndReplace(query,quiz,options);
           }
       } catch (err) { throw(err); }      
