@@ -1,6 +1,6 @@
 const { deleteObjects, listObjects } = require('./s3');
-const { MongoClient } = require('mongodb');
-const { config } = require('./config');
+const getDb = require('./db');
+
 
 module.exports = function()
 {
@@ -20,52 +20,46 @@ router.get('/list', cors(), (req, res) => {
 
 async function listQuizes(res,req) {
 try {
-    client = new MongoClient(config.mongoUri);
     var email;
     if ( req.user == null ) 
-        throw "Virhe";
+        throw Error("Virhe");
     email = req.user.email;
-    await client.connect();
-    const database = client.db("qb");
-    const userCollection = database.collection("users");
+
+    db = await getDb();
+    const userCollection = db.collection("users");
     const query = { email: email.toLowerCase() };
     const options = { projection: { _id: 0, email: 1, quiz: 1 }, };
     const user = await userCollection.findOne(query,options);
         if ( user != null ) 
             res.json({quiz:user.quiz});
         else
-            throw "Ei visoja käyttäjällä "+email;
+            throw Error("Ei visoja käyttäjällä "+email);
 } catch (error) { 
     console.log(error); 
-    res.json({error});
-} finally {
-    await client.close();
-}
+    res.json({error:error.message});
+} 
 
 }
 
 async function deleteQuiz(res,req) {
     try {
-        client = new MongoClient(config.mongoUri);
-
         if ( !req.query.name || req.query.name === undefined ) 
-            throw "Visalla ei nimeä.";
+            throw Error("Visalla ei nimeä.");
         var quizName = req.query.name.toLowerCase();
 
-        await client.connect();
-        const database = client.db("qb");
-        const questionCollection = database.collection("questions");
+        db = await getDb();
+        const questionCollection = db.collection("questions");
         const query = { name: quizName };
         const options = { projection: { _id: 0, name: 1, email: 1 }, };
         const question = await questionCollection.findOne(query,options);
         if ( question != null ) 
         {
             if ( req.user.email != question.email ) 
-                throw req.user.email+" ei ole visan "+quizName+" omistaja.";
+                throw Error(req.user.email+" ei ole visan "+quizName+" omistaja.");
 
-            await deleteQuizFromUser(req.user.email,quizName,client);
+            await deleteQuizFromUser(req.user.email,quizName,db);
             await questionCollection.deleteOne(query,options);
-            await deleteScoreboard(client,quizName);
+            await deleteScoreboard(db,quizName);
             await removeDir(quizName);
             let done = "Visa "+quizName+" poistettu.";
             console.log(done);
@@ -73,22 +67,19 @@ async function deleteQuiz(res,req) {
         }
          else 
         {
-            throw  "Visaa "+quizName+" ei ole.";
+            throw  Error("Visaa "+quizName+" ei ole.");
         }
 
     } catch (error) { 
         console.log(error); 
-        res.json({error});
-    } finally {
-        await client.close();
-    }
+        res.json({error:error.message});
+    } 
 }
 
-async function deleteScoreboard(client, quizName)
+async function deleteScoreboard(db, quizName)
 {
     try {
-        const database = client.db("qb");
-        const questionCollection = database.collection("scoreboard");
+        const questionCollection = db.collection("scoreboard");
         const query = { name: quizName };
         const options = { projection: { _id: 0, name: 1 }, };
         await questionCollection.deleteOne(query,options);
@@ -97,24 +88,22 @@ async function deleteScoreboard(client, quizName)
 
 async function editQuiz(res,req) {
     try {
-        client = new MongoClient(config.mongoUri);
-
         if ( !req.query.name || req.query.name === undefined ) 
-             throw "Visalla ei nimeä.";
+             throw Error("Visalla ei tunnusta.");
+        if ( req.query.name.length > 20 ) 
+            throw Error("Liian pitkä tunnus");
         var quizName = req.query.name.toLowerCase();
 
         var  errorDataType = "Tietyyppi virhe";
         if ( !req.is('json') )
-            throw errorDataType;
+            throw Error(errorDataType);
     
-        if ( Object.keys(req.body).length == 0  ) throw "Visa on tyhjä";        
-        if ( ! req.body.hasOwnProperty("questions") ) throw errorDataType;
-        if ( ! Array.isArray(req.body.questions) ) throw errorDataType;
+        if ( Object.keys(req.body).length == 0  ) throw Error("Visa on tyhjä");        
+        if ( ! req.body.hasOwnProperty("questions") ) throw Error(errorDataType);
+        if ( ! Array.isArray(req.body.questions) ) throw Error(errorDataType);
 
-        await client.connect();
-        console.log("Connected!");
-        const database = client.db("qb");
-        const questionCollection = database.collection("questions");
+        db = await getDb();
+        const questionCollection = db.collection("questions");
         const query = { name: quizName };
         const options = { projection: { _id: 0, name: 1, email: 1 }, };
         req.body.name=quizName.toLowerCase();
@@ -123,7 +112,7 @@ async function editQuiz(res,req) {
         const questions = await questionCollection.findOne(query,options);
             if ( questions == null ) 
             {  
-                await addQuizToUser(req.user.email,quizName,client);
+                await addQuizToUser(req.user.email,quizName,db);
                 await questionCollection.insertOne(req.body);
                 let error="Käyttäjän "+req.body.email+" Visa "+quizName+" Lisätty.";
                 console.log(error);
@@ -131,9 +120,9 @@ async function editQuiz(res,req) {
             }   
             else {
                 if ( questions.email != req.user.email ) 
-                    throw req.user.email+" ei ole visan "+quizName+" omistaja.";
+                    throw Error(req.user.email+" ei ole visan "+quizName+" omistaja.");
                 
-                await addQuizToUser(req.user.email,quizName,client);
+                await addQuizToUser(req.user.email,quizName,db);
                 await questionCollection.replaceOne(query,req.body,options);
                 await removeFiles(quizName,req.body);
                 let error="Visa "+quizName+" tallennettu.";
@@ -143,10 +132,7 @@ async function editQuiz(res,req) {
             }
     } catch (error) { 
         console.log(error); 
-        res.json({error});
-    }
-     finally {
-        await client.close();
+        res.json({error:error.message});
     }
 }
 
@@ -185,11 +171,10 @@ try {
 } catch(error) {  throw (error) }
 }
 
-async function deleteQuizFromUser(email,quizName,client)
+async function deleteQuizFromUser(email,quizName,db)
 {
     try {
-    const database = client.db("qb");
-    const userCollection = database.collection("users");
+    const userCollection = db.collection("users");
     const query = { email: email.toLowerCase() };
     const options = { projection: { _id: 0, email: 1, quiz: 1 }, };
     const user = await userCollection.findOne(query,options);
@@ -209,11 +194,10 @@ async function deleteQuizFromUser(email,quizName,client)
 }
 
 
-async function addQuizToUser(email,quizName,client)
+async function addQuizToUser(email,quizName,db)
 {
     try {
-    const database = client.db("qb");
-    const userCollection = database.collection("users");
+    const userCollection = db.collection("users");
     const query = { email: email.toLowerCase() };
     const options = { projection: { _id: 0, email: 1, quiz: 1 }, };
     const user = await userCollection.findOne(query,options);
@@ -229,7 +213,7 @@ async function addQuizToUser(email,quizName,client)
                 await userCollection.findOneAndReplace(query,user,options);
             } 
             else {
-                throw "Maksimimäärä visoja lisätty!!";
+                throw Error("Maksimimäärä visoja lisätty!");
             }
         }
         else { console.log("ei lisätty"); }

@@ -1,5 +1,4 @@
-const { MongoClient } = require('mongodb');
-const { config } = require('./config');
+const getDb = require('./db');
 
 module.exports = function()
 {
@@ -17,35 +16,32 @@ module.exports = function()
 
  async function addScore(res,req) {
     try {
-        client = new MongoClient(config.mongoUri);
-
         var quizName, name, score, email;
-        if ( req.query.name === undefined || !req.query.name) throw "Anna visan tunnus";
+        if ( req.query.name === undefined || !req.query.name) throw Error("Anna visan tunnus");
         quizName = req.query.name.toLowerCase();
 
-        if ( req.query.scorename === undefined || !req.query.scorename) throw "Anna nimimerkkisi";
-        if ( req.query.scorename.length > 20 ) throw "Liian pitkä nimimerkki";
+        if ( req.query.scorename === undefined || !req.query.scorename) throw Error("Anna nimimerkkisi");
+        if ( req.query.scorename.length > 20 ) throw Error("Liian pitkä nimimerkki");
         name = req.query.scorename;
 
         if ( req.query.score === undefined || !req.query.score) throw "Määrittele pistemäärä";
-        if ( req.query.score.length > 5 ) throw "Liian pitkä pistemäärä";
+        if ( req.query.score.length > 5 ) throw Error("Liian pitkä pistemäärä");
         score = Number(req.query.score);
 
         if ( req.user == null ) 
-            throw "Vain kirjautuneille";
+            throw Error("Vain kirjautuneille");
 
         email=req.user.email;
 
-        await client.connect();
-        const database = client.db("qb");
-        const qCollection = database.collection("scoreboard");
-        const questionCollection = database.collection("questions");
+        db = await getDb();
+        const qCollection = db.collection("scoreboard");
+        const questionCollection = db.collection("questions");
         const query = { name: quizName };
         const options = { projection: { _id: 0, name: 1,scores: 1 }, };
         const questions = await questionCollection.findOne(query,options);
         if (questions == null ) 
         {
-            throw "Visaa "+quizName+" ei ole.";
+            throw Error("Visaa "+quizName+" ei ole.");
         } else 
         {
             const scoreboard = await qCollection.findOne(query,options);
@@ -68,34 +64,27 @@ module.exports = function()
         }
     } catch (error) { 
         console.log(error); 
-        res.json({error});
-    } finally {
-        await client.close();
-    }
+        res.json({error:error.message});
+    } 
 }
     
 async function scoreboard (res,req) {
     try {
         var quizName;
         if ( req.query.name === undefined || !req.query.name)
-             throw "Anna visan tunnus.";
+             throw Error("Anna visan tunnus.");
         quizName= req.query.name.toLowerCase();
-        client = new MongoClient(config.mongoUri);
-        await client.connect();
-
-        const database = client.db("qb");
-        const qCollection = database.collection("scoreboard");
+        db = await getDb();
+        const qCollection = db.collection("scoreboard");
         const query = { name: quizName };
         const options = { projection: { _id: 0 },};
         const scoreboard = await qCollection.findOne(query,options);
         if ( scoreboard == null )
-            throw "Pistetaulua "+quizName+" ei ole olemassa";
+            throw Error("Pistetaulua "+quizName+" ei ole olemassa");
         res.json(scoreboard);
     
     } catch (error) { 
         console.log(error); 
-        res.json({error});
-    } finally {
-        await client.close();
-        }
-    }
+        res.json({error:error.message});
+    } 
+}
