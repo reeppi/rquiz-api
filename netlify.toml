@@ -91,5 +91,11 @@ keyFile = "localhost-key.pem"
     from="/getToken"
     status=200 
 
+[[redirects]]
+    to="/.netlify/functions/api/api"
+    from="/user"
+    status=200 
+
+
 
 

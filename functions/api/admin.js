@@ -25,7 +25,7 @@ try {
         throw Error("Virhe");
     email = req.user.email;
 
-    db = await getDb();
+    const db = await getDb();
     const userCollection = db.collection("users");
     const query = { email: email.toLowerCase() };
     const options = { projection: { _id: 0, email: 1, quiz: 1 }, };
@@ -47,7 +47,7 @@ async function deleteQuiz(res,req) {
             throw Error("Visalla ei nimeä.");
         var quizName = req.query.name.toLowerCase();
 
-        db = await getDb();
+        const db = await getDb();
         const questionCollection = db.collection("questions");
         const query = { name: quizName };
         const options = { projection: { _id: 0, name: 1, email: 1 }, };
@@ -89,10 +89,14 @@ async function deleteScoreboard(db, quizName)
 async function editQuiz(res,req) {
     try {
         if ( !req.query.name || req.query.name === undefined ) 
-             throw Error("Visalla ei tunnusta.");
+             throw Error("Visalla ei tunnusta!");
         if ( req.query.name.length > 20 ) 
             throw Error("Liian pitkä tunnus");
-        var quizName = req.query.name.toLowerCase();
+
+        var quizName = req.query.name.trim().toLowerCase();
+        if ( quizName == "" ) throw Error("Epäkelpo visan nimi");
+        if ( quizName == "user"  ) 
+            throw Error("User ei ole sallittu nimi.");
 
         var  errorDataType = "Tietyyppi virhe";
         if ( !req.is('json') )
@@ -176,7 +180,7 @@ async function deleteQuizFromUser(email,quizName,db)
     try {
     const userCollection = db.collection("users");
     const query = { email: email.toLowerCase() };
-    const options = { projection: { _id: 0, email: 1, quiz: 1 }, };
+    const options = { projection: { _id: 0 }, };
     const user = await userCollection.findOne(query,options);
     if ( user != null ) 
     {
@@ -199,7 +203,7 @@ async function addQuizToUser(email,quizName,db)
     try {
     const userCollection = db.collection("users");
     const query = { email: email.toLowerCase() };
-    const options = { projection: { _id: 0, email: 1, quiz: 1 }, };
+    const options = { projection: { _id: 0  }, };
     const user = await userCollection.findOne(query,options);
     if ( user == null ) 
     {

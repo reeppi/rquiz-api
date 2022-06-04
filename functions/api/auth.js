@@ -9,7 +9,7 @@ function removeToken(code)
 }
 
 const generateJwtToken = (user) => {
-  const token = jwt.sign(user, config.SessionSecret, { expiresIn: '60m',});
+  const token = jwt.sign(user, config.SessionSecret, { expiresIn: '180m',});
   return token;
 };
 
@@ -36,9 +36,12 @@ router.get(
     '/auth/facebook/callback',
     passport.authenticate('facebook', { failureRedirect: '/failureJson' }),
     (req, res) => {
-      let code = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
       var load = { id: req.user._json.id, name: req.user._json.name, email: req.user._json.email }
       var token = generateJwtToken(load);
+      var code; 
+      {
+      code = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 10);
+      } while (!tokenMap.has(code))
       tokenMap.set(code,token);
       setTimeout(removeToken, 10000, code);
       res.redirect(config.quizUrl+"?code="+code);
@@ -56,7 +59,7 @@ router.get('/getToken', cors(), (req, res) => {
       const tokenLoad = jwt.verify(token,config.SessionSecret);
       res.json({token, msg:"Kirjautuminen "+tokenLoad.email });
     } else {
-      res.json({error:"Tokenia koodilla "+code+" ei löydy"});
+      res.json({error:"Yritä kirjautua uudestaan."});
     }
     console.log("TOKEN: "+ token);
 });

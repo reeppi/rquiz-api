@@ -74,7 +74,7 @@ async function scoreboard (res,req) {
         if ( req.query.name === undefined || !req.query.name)
              throw Error("Anna visan tunnus.");
         quizName= req.query.name.toLowerCase();
-        db = await getDb();
+        const db = await getDb();
         const qCollection = db.collection("scoreboard");
         const query = { name: quizName };
         const options = { projection: { _id: 0 },};

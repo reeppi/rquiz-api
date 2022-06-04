@@ -13,7 +13,7 @@ module.exports = function()
 async function listQuizesAll(res) 
 {
     try {
-        db = await getDb();
+        const db = await getDb();
         const qCollection = db.collection("questions");
         const query = { public:true };
         const options = { projection: { _id: 0, name:1, public:1, title:1  }, };
@@ -25,26 +25,30 @@ async function listQuizesAll(res)
         console.log(error);
         res.json({error:error.message});
     }
-}
+} 
 
 async function getQuiz(res,req) 
 {
     try {
+        var dialog=false;
         if ( !req.query.name || req.query.name === undefined ) 
             throw Error("Anna visan tunnus");
         quizName = req.query.name.toLowerCase();
  
-        db =  await getDb();
+        const db =  await getDb();
         const qCollection = db.collection("questions");
         const query = { name: quizName };
         const options = { projection: { _id: 0 }, };
         const quiz = await qCollection.findOne(query,options);
         if (quiz == null ) 
+            {
+             dialog=true;
              throw Error("Visaa "+quizName+" ei ole olemassa.");
+            }
         else
             res.json(quiz);
     } catch (error) {
         console.log(error);
-        res.json({error:error.message});
+        res.json({error:error.message,dialog});
     } 
 }

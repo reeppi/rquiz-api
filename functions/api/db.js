@@ -1,6 +1,6 @@
-var MongoClient = require('mongodb').MongoClient;
+const MongoClient = require('mongodb').MongoClient;
 const { config } = require('./config');
-client = new MongoClient(config.mongoUri);
+const client = new MongoClient(config.mongoUri);
 
 module.exports = async function() {
     try {

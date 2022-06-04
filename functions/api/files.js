@@ -1,7 +1,6 @@
 const { putObject, getDirSize, deleteObjects } = require('./s3');
 const sharp = require('sharp');
 const path = require('path');
-const AwaitLock = require('await-lock');
 const getDb = require('./db');
 
 
@@ -28,7 +27,7 @@ async function upload(res,req) {
     if(!req.files.image ||req.files.image == undefined) 
       throw Error("Kuvaa ei ole määritetty");
 
-    db = await getDb();
+    const db = await getDb();
     await checkQuestions(db,req,quizName,questionNumber);  
     var file = req.files.image;
     var newData;
@@ -90,7 +89,7 @@ async function checkQuestions(db,req,quizName,qNumber) {
             if ( quiz.email != req.user.email ) throw Error(req.user.email+" ei ole visan "+quizName+" omistaja");
             if ( !quiz.hasOwnProperty("questions") ) throw Error("Tietotyyppi virhe");
             if ( !Array.isArray(quiz.questions) ) throw Error("Tietotyyppi virhe");
-            if ( qNumber >= quiz.questions.length || qNumber < 0 ) throw Error("Kysymystä ei ole vielä lisätty.");
+            if ( quiz.questions.hasOwnProperty(qNumber) ) throw Error("Kysymystä ei ole vielä lisätty.");
           }
     } catch (err) { throw(err); }
 }
