@@ -2,6 +2,7 @@ const { putObject, getDirSize, deleteObjects } = require('./s3');
 const sharp = require('sharp');
 const path = require('path');
 const getDb = require('./db');
+const mime = require('mime-types');
 
 
 module.exports = function()
@@ -10,6 +11,52 @@ router.post('/upload', cors(), (req, res) => {
     console.log("Upload");
     upload(res,req);
 });
+router.post('/uploadaudio', cors(), (req, res) => {
+  console.log("Uploadaudio");
+  uploadAudio(res,req);
+});
+}
+
+async function uploadAudio(res,req) {
+  try {
+    
+    if ( !req.query.name || req.query.name === undefined  ) 
+        throw Error("Visalla ei nimeä.");
+    if ( !req.query.question || req.query.question === undefined  ) 
+        throw Error("Kysymys numeroa ei määritetty");
+ 
+    var quizName=req.query.name.toLowerCase();
+    var questionNumber=req.query.question;
+       
+
+    if (!req.files || Object.keys(req.files).length === 0) 
+      throw Error("ei mitään upattavaa");
+    if(!req.files.audio ||req.files.audio == undefined) 
+      throw Error("Audiota ei ole määritelty");
+
+    var file = req.files.audio;
+    var ext =  mime.extension(file.mimetype);
+    var genName = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
+    var newFileName = genName+"."+ext;
+
+    const db = await getDb();
+    //await checkQuestions(db,req,quizName,questionNumber);  
+
+    var cc= await getDirSize(quizName+"/audio/");
+    cc.size+=file.size;
+    if ( cc.size >= 5000000 ) throw Error("Visan audion tallennustila täynnä");
+    if ( cc.count >= 30 )  throw Error("Maksimimäärä (5) äänitteitä ylitetty");
+    
+    await putObject(quizName+"/audio/"+newFileName, file.data, file.data.length);
+
+    console.log(req.files.audio);
+    res.json({error:"Äänite lisätty", done:newFileName});
+  }
+  catch (error) { 
+    console.log(error); 
+    res.json({error:error.message});
+  }  
+
 }
 
 async function upload(res,req) {
@@ -37,7 +84,6 @@ async function upload(res,req) {
     await sharp(file.data).resize(360, 360, {  fit: sharp.fit.inside, withoutEnlargement: true }).toBuffer().then ( data => { newData=data;} ) ;
     const metadata = await sharp(newData).metadata();
     var cc= await getDirSize(quizName);
-
     cc.size+=newData.length;
     if ( cc.size >= 2000000 ) throw Error("Visan kuvien tallenustila täysi");
     if ( cc.count >= 30 )  throw Error("Maksimimäärä (30) kuvia ylitetty");
@@ -58,7 +104,7 @@ async function updateImageToQuiz(db,req,quizName,qNumber,fileName,metadata) {
     try {
       const questionCollection = db.collection("questions");
       const query = { name: quizName };
-      const options = { projection: { _id: 0, name: 1, email: 1, title:1, public:1, questions: 1 }, };
+      const options = { projection: { _id: 0 }, };
       const quiz = await questionCollection.findOne(query,options);
           if ( quiz == null ) 
             throw Error("Visa pitää tallentaa ensiksi");
@@ -89,7 +135,7 @@ async function checkQuestions(db,req,quizName,qNumber) {
             if ( quiz.email != req.user.email ) throw Error(req.user.email+" ei ole visan "+quizName+" omistaja");
             if ( !quiz.hasOwnProperty("questions") ) throw Error("Tietotyyppi virhe");
             if ( !Array.isArray(quiz.questions) ) throw Error("Tietotyyppi virhe");
-            if ( quiz.questions.hasOwnProperty(qNumber) ) throw Error("Kysymystä ei ole vielä lisätty.");
+            if ( !quiz.questions.hasOwnProperty(qNumber) ) throw Error("Kysymystä ei ole vielä lisätty.");
           }
-    } catch (err) { throw(err); }
+    } catch (err) { throw(err);  }
 }

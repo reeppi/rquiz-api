@@ -16,7 +16,7 @@ async function listQuizesAll(res)
         const db = await getDb();
         const qCollection = db.collection("questions");
         const query = { public:true };
-        const options = { projection: { _id: 0, name:1, public:1, title:1  }, };
+        const options = { projection: { _id: 0  }, };
         const quizes = await qCollection.find(query,options);
         var quizArray = [];
         await quizes.forEach(function(dA) { quizArray.push({name:dA.name,title:dA.title,cat:""});} );

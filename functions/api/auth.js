@@ -4,14 +4,20 @@ const { tokenMap } = require('./token.js');
 
 function removeToken(code)
 {
-  console.log("token "+code+" deleted");
   tokenMap.delete(code);
 }
 
-const generateJwtToken = (user) => {
-  const token = jwt.sign(user, config.SessionSecret, { expiresIn: '180m',});
-  return token;
-};
+function genAndSendTokenCode(res,load)
+{
+  var token = jwt.sign(load, config.SessionSecret, { expiresIn: '180m',});
+  var code; 
+  {
+  code = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 10);
+  } while (!tokenMap.has(code))
+  tokenMap.set(code,token);
+  setTimeout(removeToken, 10000, code);
+  res.redirect(config.quizUrl+"?code="+code);
+}
 
 module.exports = function() {
 
@@ -20,15 +26,7 @@ router.get('/auth/facebook',passport.authenticate('facebook', { scope: 'email' }
 
 router.get('/auth/google/callback',passport.authenticate('google', { failureRedirect: '/failureJson' }),(req, res) => {
       var load = { id: req.user._json.sub, name: req.user._json.name, email: req.user._json.email }
-      var token = generateJwtToken(load);
-      var code;
-      {
-        code = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 10);
-      } while (!tokenMap.has(code))
-      tokenMap.set(code,token);
-      let codeLet = code;
-      setTimeout(removeToken, 10000, codeLet);
-      res.redirect(config.quizUrl+"?code="+code);
+      genAndSendTokenCode(res,load);
     }
   ); 
 
@@ -37,19 +35,12 @@ router.get(
     passport.authenticate('facebook', { failureRedirect: '/failureJson' }),
     (req, res) => {
       var load = { id: req.user._json.id, name: req.user._json.name, email: req.user._json.email }
-      var token = generateJwtToken(load);
-      var code; 
-      {
-      code = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 10);
-      } while (!tokenMap.has(code))
-      tokenMap.set(code,token);
-      setTimeout(removeToken, 10000, code);
-      res.redirect(config.quizUrl+"?code="+code);
+      genAndSendTokenCode(res,load);
     }
 );
   
 router.get('/getToken', cors(), (req, res) => {
-  if ( !req.query.code || req.query.code === undefined ) res.json({error:"Koodi puutuu"});
+  if ( !req.query.code || req.query.code === undefined ) res.json({error:"Koodi puuttuu"});
   var code = req.query.code;
   var token="";
     if ( tokenMap.has(code) )

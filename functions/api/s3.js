@@ -39,8 +39,8 @@ exports.getDirSize = function(dir) {
     var count = 0;
     data.Contents.forEach(function(d) { count+=1; size+=d.Size } ); 
     resolve({size,count});
-    } ).catch(err => { reject(err);   } );
-  });
+    } )
+  })
 };
 
 exports.putObject = function(filename, buffer, contentLength) {

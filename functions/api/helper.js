@@ -23,7 +23,7 @@ exports.asynclock = function () {
     this.lockMap = new Map();
     this.release  = function (str) {  this.lockMap.delete(str);}
     this.set = function(str) { 
-        return waitAsync(str, this.lockMap).then();
+        return waitAsync(str, this.lockMap);
      }
 }
 

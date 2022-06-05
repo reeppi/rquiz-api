@@ -16,6 +16,7 @@
     "fs": "0.0.1-security",
     "jsonwebtoken": "^8.5.1",
     "mime": "^3.0.0",
+    "mime-types": "^2.1.35",
     "mongodb": "^4.3.1",
     "passport": "^0.5.2",
     "passport-facebook": "^3.0.0",

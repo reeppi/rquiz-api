@@ -93,6 +93,11 @@ keyFile = "localhost-key.pem"
 
 [[redirects]]
     to="/.netlify/functions/api/api"
+    from="/uploadaudio"
+    status=200 
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
     from="/user"
     status=200 
 

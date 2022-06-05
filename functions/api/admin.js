@@ -96,7 +96,7 @@ async function editQuiz(res,req) {
         var quizName = req.query.name.trim().toLowerCase();
         if ( quizName == "" ) throw Error("Epäkelpo visan nimi");
         if ( quizName == "user"  ) 
-            throw Error("User ei ole sallittu nimi.");
+            throw Error(quizName+" ei ole sallittu nimi.");
 
         var  errorDataType = "Tietyyppi virhe";
         if ( !req.is('json') )
@@ -110,7 +110,7 @@ async function editQuiz(res,req) {
         const questionCollection = db.collection("questions");
         const query = { name: quizName };
         const options = { projection: { _id: 0, name: 1, email: 1 }, };
-        req.body.name=quizName.toLowerCase();
+        req.body.name=quizName;
         req.body.email=req.user.email;
 
         const questions = await questionCollection.findOne(query,options);
@@ -160,7 +160,7 @@ try {
   modFiles = [];
   body.questions.forEach(function(d) {  
       if ( d.hasOwnProperty("image")) 
-        if ( d.image != "" )
+        if ( d.image != "" && d.image )
             modFiles.push(quizName+"/"+d.image) } 
       );
    rFiles = []; 
@@ -179,7 +179,7 @@ async function deleteQuizFromUser(email,quizName,db)
 {
     try {
     const userCollection = db.collection("users");
-    const query = { email: email.toLowerCase() };
+    const query = { email };
     const options = { projection: { _id: 0 }, };
     const user = await userCollection.findOne(query,options);
     if ( user != null ) 
@@ -202,8 +202,8 @@ async function addQuizToUser(email,quizName,db)
 {
     try {
     const userCollection = db.collection("users");
-    const query = { email: email.toLowerCase() };
-    const options = { projection: { _id: 0  }, };
+    const query = { email };
+    const options = { projection: { _id: 0  } };
     const user = await userCollection.findOne(query,options);
     if ( user == null ) 
     {
@@ -211,7 +211,9 @@ async function addQuizToUser(email,quizName,db)
     } else {
         if ( !user.quiz.includes(quizName) )
         {
-            if ( user.quiz.length < 5 ) 
+            let max = 5;
+            if ( user.quiz.max ) max = user.quiz.max;
+            if ( user.quiz.length < max ) 
             {
                 user.quiz.push(quizName);
                 await userCollection.findOneAndReplace(query,user,options);
