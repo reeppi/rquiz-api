@@ -24,10 +24,18 @@ checkAccess = (req, res, next) => {
     next();
 }
 
+router.get('/', cors(), (req, res) => {
+  res.write("tietovisan api");
+  res.end();
+});
+
 app.use('/list', passport.authenticate('jwt', { session: false, failureRedirect : '/failureJson' }), checkAccess);
 app.use('/edit', passport.authenticate('jwt', { session: false, failureRedirect : '/failureJson' }), checkAccess);
 app.use('/delete', passport.authenticate('jwt', { session: false, failureRedirect : '/failureJson' }), checkAccess);
 app.use('/addscore', passport.authenticate('jwt', { session: false, failureRedirect : '/failureJson' }), checkAccess);
 app.use('/upload', passport.authenticate('jwt', { session: false, failureRedirect : '/failureJson' }), checkAccess);
+app.use('/uploadaudio', passport.authenticate('jwt', { session: false, failureRedirect : '/failureJson' }), checkAccess);
+app.use('/rename', passport.authenticate('jwt', { session: false, failureRedirect : '/failureJson' }), checkAccess);
+app.use('/user', passport.authenticate('jwt', { session: false, failureRedirect : '/failureJson' }), checkAccess);
 app.use('/', router);
 module.exports.handler = serverless(app);

@@ -101,6 +101,16 @@ keyFile = "localhost-key.pem"
     from="/user"
     status=200 
 
+[[redirects]]
+    to="/.netlify/functions/api/api"
+    from="/rename"
+    status=200 
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
+    from="/"
+    status=200 
+
 
 
 

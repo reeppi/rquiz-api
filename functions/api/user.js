@@ -9,7 +9,8 @@ module.exports = function()
         console.log("User");
         user(res,req);  
         }
-    );   
+    );  
+    /* 
     router.get('/test', cors(),  async (req, res) => { 
       try 
       {
@@ -20,21 +21,25 @@ module.exports = function()
       finally {
         lock.release("sa"); 
       }
-    } );
+    } );*/
 }
 
+/*
 function delay(str,time) {
   return new Promise(function(resolve, reject) {
     setTimeout((str)=>{ console.log(str); resolve()}, time, str);
   });
-}
+}*/
   
 async function user(res,req) {
     try {
-        var email = "tuomas.kokki@iki.fi";
-        const fields = [{name:"name",maxlen:20},
+        var email = req.user.email;
+       // var email ="tuomas.kokki@iki.fi" 
+       //var email ="reeppi@gmail.com" 
+       const fields = [{name:"name",maxlen:20},
                       {name:"desc",maxlen:200},
-                      {name:"age",maxlen:3,type:"number"}];
+                      {name:"age",maxlen:3,type:"number"},
+                      {name:"max",maxlen:3,type:"number"}];
         const reqFields = validator(req,fields);
         const db = await getDb(); 
         const userCollection = db.collection("users");
@@ -52,7 +57,18 @@ async function user(res,req) {
             user = await userCollection.findOne(query,options);
           }
           res.json(user);
+        } else {
+          if ( !req.query.adduser )
+          {
+            res.json({error:"Käyttäjällä "+email+" ei tallennettuja tietoja.",newuser:true,email});
+          } else 
+          { 
+            await userCollection.insertOne({email,name:req.user.name,quiz:[]});
+            user = await userCollection.findOne(query,options);
+            res.json(user);
+          }
         }
+     
         
         } catch (error) 
           { console.log(error); res.json({error:error.message}); }

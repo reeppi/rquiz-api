@@ -8,16 +8,33 @@ const s3 = new AWS.S3( { accessKeyId:config.s3accessKeyId,
 
 const bucketName ="tietovisa";
 
+exports.copyObject = function(source,dest) {
+  return new Promise(function(resolve, reject) {
+    var  params = {
+      Bucket : bucketName,
+      CopySource : bucketName + "/" +source, 
+      Key : dest,
+      ACL:'public-read'
+    }
+    s3.copyObject(params, 
+      function(err,data) {
+          if (err ) { reject(err); }
+          else { resolve(data);}
+        }
+        );
+  });
+};
+
 exports.deleteObjects = function(files) {
   return new Promise(function(resolve, reject) {
     var Objects= [];
     files.forEach(function(Key) { Objects.push({Key}) } );
     s3.deleteObjects( {Bucket:bucketName, Delete: { Objects } }, 
-    function(err,data) {
-      if (err ) { reject(err); }
-      else { resolve(data);}
-    }
-    );
+      function(err,data) {
+        if (err ) { reject(err); }
+        else { resolve(data); }
+      }
+      );
   });
 };
 

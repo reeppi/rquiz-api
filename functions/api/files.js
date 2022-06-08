@@ -28,11 +28,10 @@ async function uploadAudio(res,req) {
     var quizName=req.query.name.toLowerCase();
     var questionNumber=req.query.question;
        
-
     if (!req.files || Object.keys(req.files).length === 0) 
       throw Error("ei mitään upattavaa");
     if(!req.files.audio ||req.files.audio == undefined) 
-      throw Error("Audiota ei ole määritelty");
+      throw Error("Äänitettä ei ole määritelty");
 
     var file = req.files.audio;
     var ext =  mime.extension(file.mimetype);
@@ -40,14 +39,15 @@ async function uploadAudio(res,req) {
     var newFileName = genName+"."+ext;
 
     const db = await getDb();
-    //await checkQuestions(db,req,quizName,questionNumber);  
+    await checkQuestions(db,req,quizName,questionNumber);  
 
     var cc= await getDirSize(quizName+"/audio/");
     cc.size+=file.size;
-    if ( cc.size >= 5000000 ) throw Error("Visan audion tallennustila täynnä");
+    if ( cc.size >= 5000000 ) throw Error("Visan äänitteiden tallennustila täynnä");
     if ( cc.count >= 30 )  throw Error("Maksimimäärä (5) äänitteitä ylitetty");
     
     await putObject(quizName+"/audio/"+newFileName, file.data, file.data.length);
+    await updateAudioToQuiz(db,req,quizName,questionNumber,newFileName);
 
     console.log(req.files.audio);
     res.json({error:"Äänite lisätty", done:newFileName});
@@ -88,7 +88,7 @@ async function upload(res,req) {
     if ( cc.size >= 2000000 ) throw Error("Visan kuvien tallenustila täysi");
     if ( cc.count >= 30 )  throw Error("Maksimimäärä (30) kuvia ylitetty");
   
-    await putObject(quizName+"/"+newFileName, newData, newData.length);
+    await putObject(quizName+"/images/"+newFileName, newData, newData.length);
     await updateImageToQuiz(db,req,quizName,questionNumber,newFileName,metadata); 
 
     res.json({error:"Kuva "+file.name+" lisätty.", done:newFileName, width:metadata.width, height:metadata.height});
@@ -97,6 +97,28 @@ async function upload(res,req) {
       console.log(error); 
       res.json({error:error.message});
     } 
+}
+
+
+async function updateAudioToQuiz(db,req,quizName,qNumber,fileName) {
+  try {
+    const questionCollection = db.collection("questions");
+    const query = { name: quizName };
+    const options = { projection: { _id: 0 }, };
+    const quiz = await questionCollection.findOne(query,options);
+        if ( quiz == null ) 
+          throw Error("Visa pitää tallentaa ensiksi");
+        else 
+        {
+          if ( quiz.email != req.user.email ) 
+            throw Error(req.user.email+" ei ole visan "+quizName+" omistaja");
+
+          if ( quiz.questions[qNumber].audio ) 
+            await deleteObjects([quizName+"/audio/"+quiz.questions[qNumber].audio]);
+          quiz.questions[qNumber].audio = fileName;
+          await questionCollection.findOneAndReplace(query,quiz,options);
+        }
+    } catch (err) { throw(err); }      
 }
 
 
@@ -112,8 +134,9 @@ async function updateImageToQuiz(db,req,quizName,qNumber,fileName,metadata) {
           {
             if ( quiz.email != req.user.email ) 
               throw Error(req.user.email+" ei ole visan "+quizName+" omistaja");
-
-            await deleteObjects([quizName+"/"+quiz.questions[qNumber].image]);
+            
+            if (quiz.questions[qNumber].image)
+              await deleteObjects([quizName+"/images/"+quiz.questions[qNumber].image]);
             quiz.questions[qNumber].image = fileName;
             quiz.questions[qNumber].width= metadata.width;
             quiz.questions[qNumber].height= metadata.height;

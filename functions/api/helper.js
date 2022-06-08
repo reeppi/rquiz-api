@@ -3,7 +3,7 @@ exports.validator = function(req,fields)
     try {
         var reqFields = {};
         fields.forEach(function(field) {   
-            if ( req.query[field.name] != undefined || req.query[field.name]) 
+            if ( req.query[field.name] != undefined ) 
             {
                 if ( req.query[field.name].length > field.maxlen ) throw Error("Liian pitkä "+field.name);
                 var value;

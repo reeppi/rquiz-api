@@ -1,6 +1,8 @@
-const { deleteObjects, listObjects } = require('./s3');
+const { deleteObjects, listObjects, copyObject } = require('./s3');
 const getDb = require('./db');
-
+const path = require('path');
+const { asynclock } = require('./helper'); 
+const lock = new asynclock();
 
 module.exports = function()
 {
@@ -16,6 +18,104 @@ router.get('/list', cors(), (req, res) => {
     console.log("List");
     listQuizes(res,req);
 });
+router.get('/rename', cors(), (req, res) => {
+    console.log("Rename");
+    rename(res,req);
+});
+}
+
+async function rename(res,req) {
+    try
+    {
+        if ( !req.query.name  ) 
+            throw Error("Visalla ei nimeä.");
+        if ( !req.query.to  ) 
+            throw Error("Kohdetta ei määritelty.");
+        if ( req.query.to.length > 30  ) 
+            throw Error("Liian pitkä tunnus kohteella.");
+        if ( req.user == null ) 
+            throw Error("Häiriö kirjautumisessa.");
+        var email = req.user.email;
+        var quizName = req.query.name.toLowerCase();
+        var toQuizName = req.query.to.toLowerCase();
+
+        await lock.set(email);
+        const db = await getDb();    
+        await isQuizFree(db,toQuizName);
+        await renameQuiz(db,quizName,toQuizName,email);
+        await renameScoreboard(db,quizName,toQuizName);
+        await deleteQuizFromUser(email,quizName,db); // ;)
+        await addQuizToUser(email,toQuizName,db);  // ;)
+        
+        dataDir= await listObjects(quizName+"/");
+        var promises = [];
+        for (const s of dataDir.Contents) {
+            var d=s.Key.split("/");
+            d.splice(0,1);
+            var dd = toQuizName+"/"+d.join("/");
+            promises.push(copyObject(s.Key,dd));
+        }
+        await Promise.all(promises);
+        await removeDir(quizName);
+        var error ="Visa "+quizName+" --> "+toQuizName;
+        console.log(error);
+        res.json({error,done:toQuizName });
+    }
+    catch (error) { 
+        console.log(error); 
+        res.json({error:error.message} )
+    } finally {
+        lock.release(email); 
+      }
+}
+
+async function renameQuiz(db,quizName,toQuizName,email)
+{
+    try {
+        const qCollection = db.collection("questions");
+        const query = { name: quizName };
+        const options = { projection: { _id: 0 }, };
+        const quiz = await qCollection.findOne(query,options);
+        if ( quiz!=null )
+        {
+            if ( quiz.email != email ) 
+                throw Error("Et ole "+quizName+" visan omistaja.");
+            quiz.name=toQuizName;
+            await qCollection.findOneAndReplace(query,quiz,options);
+        } else 
+        { throw Error("Tallenna visa "+quizName+" ensiksi."); }
+
+    } catch (err)
+         { throw(err); }
+}
+
+async function renameScoreboard(db,quizName,toQuizName)
+{
+    try {
+        const qCollection = db.collection("scoreboard");
+        const query = { name: quizName };
+        const options = { projection: { _id: 0 }, };
+        const quiz = await qCollection.findOne(query,options);
+        if ( quiz!=null )
+        {
+            quiz.name=toQuizName;
+            await qCollection.findOneAndReplace(query,quiz,options);
+        } 
+    } catch (err)
+         { throw(err); }
+}
+
+async function isQuizFree(db,quizName)
+{
+    try {
+        const qCollection = db.collection("questions");
+        const query = { name: quizName };
+        const options = { projection: { _id: 0 }, };
+        const quiz = await qCollection.findOne(query,options);
+        if (quiz != null ) 
+            throw Error("Visa on  "+quizName+" jo olemassa");
+    } catch (err)
+         { throw(err); }
 }
 
 async function listQuizes(res,req) {
@@ -90,7 +190,7 @@ async function editQuiz(res,req) {
     try {
         if ( !req.query.name || req.query.name === undefined ) 
              throw Error("Visalla ei tunnusta!");
-        if ( req.query.name.length > 20 ) 
+        if ( req.query.name.length > 30 ) 
             throw Error("Liian pitkä tunnus");
 
         var quizName = req.query.name.trim().toLowerCase();
@@ -106,7 +206,7 @@ async function editQuiz(res,req) {
         if ( ! req.body.hasOwnProperty("questions") ) throw Error(errorDataType);
         if ( ! Array.isArray(req.body.questions) ) throw Error(errorDataType);
 
-        db = await getDb();
+        const db = await getDb();
         const questionCollection = db.collection("questions");
         const query = { name: quizName };
         const options = { projection: { _id: 0, name: 1, email: 1 }, };
@@ -128,7 +228,8 @@ async function editQuiz(res,req) {
                 
                 await addQuizToUser(req.user.email,quizName,db);
                 await questionCollection.replaceOne(query,req.body,options);
-                await removeFiles(quizName,req.body);
+                await removeImageFiles(quizName,req.body);
+                await removeAudioFiles(quizName,req.body);
                 let error="Visa "+quizName+" tallennettu.";
                 console.log(error);
                 res.json({error});
@@ -152,16 +253,15 @@ async function removeDir(quizName)
     } catch(error) {  throw (error) }
 }
 
-async function removeFiles(quizName,body) {
+async function removeImageFiles(quizName,body) {
 try {
   dirFiles = [];
-  data= await listObjects(quizName+"/");
+  data= await listObjects(quizName+"/images/");
   data.Contents.forEach(function(d) { dirFiles.push(d.Key) } );
   modFiles = [];
   body.questions.forEach(function(d) {  
-      if ( d.hasOwnProperty("image")) 
-        if ( d.image != "" && d.image )
-            modFiles.push(quizName+"/"+d.image) } 
+        if ( d.image )
+            modFiles.push(quizName+"/images/"+d.image) } 
       );
    rFiles = []; 
     dirFiles.forEach( function(d) {
@@ -174,6 +274,29 @@ try {
     console.log(rFiles);
 } catch(error) {  throw (error) }
 }
+
+
+async function removeAudioFiles(quizName,body) {
+    try {
+      dirFiles = [];
+      data= await listObjects(quizName+"/audio/");
+      data.Contents.forEach(function(d) { dirFiles.push(d.Key) } );
+      modFiles = [];
+      body.questions.forEach(function(d) {   
+            if ( d.audio )
+                modFiles.push(quizName+"/audio/"+d.audio) } 
+          );
+       rFiles = []; 
+        dirFiles.forEach( function(d) {
+            if ( !modFiles.includes(d) )
+             rFiles.push(d);
+        });
+        if ( rFiles.length > 0 ) 
+            await deleteObjects(rFiles);
+        console.log("Poistetaan : ");
+        console.log(rFiles);
+    } catch(error) {  throw (error) }
+    }
 
 async function deleteQuizFromUser(email,quizName,db)
 {
@@ -212,7 +335,7 @@ async function addQuizToUser(email,quizName,db)
         if ( !user.quiz.includes(quizName) )
         {
             let max = 5;
-            if ( user.quiz.max ) max = user.quiz.max;
+            if ( user.max ) max = user.max;
             if ( user.quiz.length < max ) 
             {
                 user.quiz.push(quizName);
