@@ -32,7 +32,7 @@ async function rename(res,req) {
         if ( !req.query.to  ) 
             throw Error("Kohdetta ei määritelty.");
         if ( req.query.to.length > 30  ) 
-            throw Error("Liian pitkä tunnus kohteella.");
+            throw Error("Liian pitkä nimi kohteella.");
         if ( req.user == null ) 
             throw Error("Häiriö kirjautumisessa.");
         var email = req.user.email;
@@ -188,10 +188,10 @@ async function deleteScoreboard(db, quizName)
 
 async function editQuiz(res,req) {
     try {
-        if ( !req.query.name || req.query.name === undefined ) 
-             throw Error("Visalla ei tunnusta!");
+        if ( !req.query.name ) 
+             throw Error("Visalla ei nimeä!");
         if ( req.query.name.length > 30 ) 
-            throw Error("Liian pitkä tunnus");
+            throw Error("Liian pitkä nimi");
 
         var quizName = req.query.name.trim().toLowerCase();
         if ( quizName == "" ) throw Error("Epäkelpo visan nimi");

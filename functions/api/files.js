@@ -20,9 +20,9 @@ router.post('/uploadaudio', cors(), (req, res) => {
 async function uploadAudio(res,req) {
   try {
     
-    if ( !req.query.name || req.query.name === undefined  ) 
+    if ( !req.query.name ) 
         throw Error("Visalla ei nimeä.");
-    if ( !req.query.question || req.query.question === undefined  ) 
+    if ( !req.query.question  ) 
         throw Error("Kysymys numeroa ei määritetty");
  
     var quizName=req.query.name.toLowerCase();
@@ -40,11 +40,17 @@ async function uploadAudio(res,req) {
 
     const db = await getDb();
     await checkQuestions(db,req,quizName,questionNumber);  
-
+    /*
+    var user=await getUser(db,req.user.email);
+    if ( !user  )
+        throw Error("Ei oikeuksia lisätä äänitteitä");
+    if ( !user.audio )
+        throw Error("Ei oikeuksia lisätä äänitteitä");*/
+        
     var cc= await getDirSize(quizName+"/audio/");
     cc.size+=file.size;
     if ( cc.size >= 5000000 ) throw Error("Visan äänitteiden tallennustila täynnä");
-    if ( cc.count >= 30 )  throw Error("Maksimimäärä (5) äänitteitä ylitetty");
+    if ( cc.count >= 10 )  throw Error("Maksimimäärä (10) äänitteitä ylitetty");
     
     await putObject(quizName+"/audio/"+newFileName, file.data, file.data.length);
     await updateAudioToQuiz(db,req,quizName,questionNumber,newFileName);
@@ -61,9 +67,9 @@ async function uploadAudio(res,req) {
 
 async function upload(res,req) {
   try {
-    if ( !req.query.name || req.query.name === undefined  ) 
+    if ( !req.query.name  ) 
         throw Error("Visalla ei nimeä.");
-    if ( !req.query.question || req.query.question === undefined  ) 
+    if ( !req.query.question  ) 
         throw Error("Kysymys numeroa ei määritetty");
 
     var quizName=req.query.name.toLowerCase();
@@ -162,3 +168,16 @@ async function checkQuestions(db,req,quizName,qNumber) {
           }
     } catch (err) { throw(err);  }
 }
+
+
+async function getUser(db,email)
+{
+    try {
+    const userCollection = db.collection("users");
+    const query = { email };
+    const options = { projection: { _id: 0 }, };
+    const user = await userCollection.findOne(query,options);
+    return user;
+    } catch (error) { throw(error); }
+}
+

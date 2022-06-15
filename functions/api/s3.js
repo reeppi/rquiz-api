@@ -2,9 +2,18 @@ const AWS = require("aws-sdk");
 const {config} = require ('./config');
 const fs = require('fs');
 const mime = require('mime');
+/*
+ Amazon AWS S3
 const s3 = new AWS.S3( { accessKeyId:config.s3accessKeyId,
                         secretAccessKey:config.s3secretAccessKey,
-                        region: config.s3region });
+                        region: config.s3region });*/
+/* Contabo S3*/
+const s3 = new AWS.S3( {
+                          endpoint: config.coEndpoint, 
+                          accessKeyId:config.coAccessKeyId,
+                          secretAccessKey:config.coSecretAccessKey,
+                          s3BucketEndpoint: config.coBucketEndpoint
+                        });
 
 const bucketName ="tietovisa";
 

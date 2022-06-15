@@ -12,24 +12,24 @@ module.exports = function()
         addScore(res,req); 
     }
     );
-}
-
+} 
+ 
  async function addScore(res,req) {
     try {
         var quizName, name, score, email;
-        if ( req.query.name === undefined || !req.query.name) throw Error("Anna visan tunnus");
+        if ( !req.query.name) throw Error("Anna visan nimi");
         quizName = req.query.name.toLowerCase();
 
-        if ( req.query.scorename === undefined || !req.query.scorename) throw Error("Anna nimimerkkisi");
+        if ( !req.query.scorename) throw Error("Anna nimimerkkisi");
         if ( req.query.scorename.length > 20 ) throw Error("Liian pitkä nimimerkki");
         name = req.query.scorename;
 
-        if ( req.query.score === undefined || !req.query.score) throw "Määrittele pistemäärä";
+        if (  !req.query.score) throw Error("Määrittele pistemäärä");
         if ( req.query.score.length > 5 ) throw Error("Liian pitkä pistemäärä");
         score = Number(req.query.score);
 
         if ( req.user == null ) 
-            throw Error("Vain kirjautuneille");
+            throw Error("Toimii vain kirjautuneilla");
 
         email=req.user.email;
 
@@ -71,8 +71,8 @@ module.exports = function()
 async function scoreboard (res,req) {
     try {
         var quizName;
-        if ( req.query.name === undefined || !req.query.name)
-             throw Error("Anna visan tunnus.");
+        if ( !req.query.name)
+             throw Error("Anna visan nimi.");
         quizName= req.query.name.toLowerCase();
         const db = await getDb();
         const qCollection = db.collection("scoreboard");

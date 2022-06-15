@@ -9,6 +9,10 @@ exports.validator = function(req,fields)
                 var value;
                 if ( field.type == "number" ) 
                     value = Number(req.query[field.name]);
+                else if ( field.type == "bool")
+                {
+                    value = JSON.parse(req.query[field.name].toLowerCase());
+                }
                 else 
                     value = req.query[field.name];
                 reqFields[field.name]=value;

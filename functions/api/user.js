@@ -33,13 +33,15 @@ function delay(str,time) {
   
 async function user(res,req) {
     try {
-        var email = req.user.email;
+       // var email = req.user.email;
        // var email ="tuomas.kokki@iki.fi" 
-       //var email ="reeppi@gmail.com" 
+       var email ="reeppi@gmail.com" 
        const fields = [{name:"name",maxlen:20},
                       {name:"desc",maxlen:200},
                       {name:"age",maxlen:3,type:"number"},
-                      {name:"max",maxlen:3,type:"number"}];
+                      {name:"max",maxlen:3,type:"number"},
+                      {name:"audio",maxlen:5,type:"bool"},
+                      {name:"image",maxlen:5,type:"bool"}];
         const reqFields = validator(req,fields);
         const db = await getDb(); 
         const userCollection = db.collection("users");
