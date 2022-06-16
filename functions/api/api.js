@@ -29,13 +29,15 @@ router.get('/', cors(), (req, res) => {
   res.end();
 });
 
-app.use('/list', passport.authenticate('jwt', { session: false, failureRedirect : '/failureJson' }), checkAccess);
-app.use('/edit', passport.authenticate('jwt', { session: false, failureRedirect : '/failureJson' }), checkAccess);
-app.use('/delete', passport.authenticate('jwt', { session: false, failureRedirect : '/failureJson' }), checkAccess);
-app.use('/addscore', passport.authenticate('jwt', { session: false, failureRedirect : '/failureJson' }), checkAccess);
-app.use('/upload', passport.authenticate('jwt', { session: false, failureRedirect : '/failureJson' }), checkAccess);
-app.use('/uploadaudio', passport.authenticate('jwt', { session: false, failureRedirect : '/failureJson' }), checkAccess);
-app.use('/rename', passport.authenticate('jwt', { session: false, failureRedirect : '/failureJson' }), checkAccess);
-app.use('/user', passport.authenticate('jwt', { session: false, failureRedirect : '/failureJson' }), checkAccess);
+const authOb = { session: false, failureRedirect : '/failureJson' }
+
+app.use('/list', passport.authenticate('jwt', authOb), checkAccess);
+app.use('/edit', passport.authenticate('jwt', authOb), checkAccess);
+app.use('/delete', passport.authenticate('jwt', authOb), checkAccess);
+app.use('/addscore', passport.authenticate('jwt', authOb), checkAccess);
+app.use('/upload', passport.authenticate('jwt', authOb), checkAccess);
+app.use('/uploadaudio', passport.authenticate('jwt', authOb), checkAccess);
+app.use('/rename', passport.authenticate('jwt', authOb), checkAccess);
+app.use('/user', passport.authenticate('jwt',authOb), checkAccess);
 app.use('/', router);
 module.exports.handler = serverless(app);

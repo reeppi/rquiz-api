@@ -33,9 +33,9 @@ function delay(str,time) {
   
 async function user(res,req) {
     try {
-       // var email = req.user.email;
+       var email = req.user.email;
        // var email ="tuomas.kokki@iki.fi" 
-       var email ="reeppi@gmail.com" 
+       // var email ="reeppi@gmail.com" 
        const fields = [{name:"name",maxlen:20},
                       {name:"desc",maxlen:200},
                       {name:"age",maxlen:3,type:"number"},
