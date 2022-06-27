@@ -68,6 +68,11 @@ keyFile = "localhost-key.pem"
 
 [[redirects]]
     to="/.netlify/functions/api/api"
+    from="/quiza"
+    status=200 
+
+[[redirects]]
+    to="/.netlify/functions/api/api"
     from="/edit"
     status=200 
 

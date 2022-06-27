@@ -72,6 +72,7 @@ async function upload(res,req) {
     if ( !req.query.question  ) 
         throw Error("Kysymys numeroa ei määritetty");
 
+    console.log("Uploading");
     var quizName=req.query.name.toLowerCase();
     var questionNumber=req.query.question;
 

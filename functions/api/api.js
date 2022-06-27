@@ -16,8 +16,9 @@ app.use(cors());
 app.use(express.json({ limit: '15kb' })); 
 app.use(passport.initialize());
 
+
 app.use(fileUpload({
-    limits: { fileSize: 3 * 1024 * 1024 },
+    limits: { fileSize: 4 * 1024 * 1024 },
   }));
 
 checkAccess = (req, res, next) => {
@@ -39,5 +40,6 @@ app.use('/upload', passport.authenticate('jwt', authOb), checkAccess);
 app.use('/uploadaudio', passport.authenticate('jwt', authOb), checkAccess);
 app.use('/rename', passport.authenticate('jwt', authOb), checkAccess);
 app.use('/user', passport.authenticate('jwt',authOb), checkAccess);
+app.use('/quiza', passport.authenticate('jwt',authOb), checkAccess);
 app.use('/', router);
 module.exports.handler = serverless(app);
