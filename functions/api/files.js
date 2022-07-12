@@ -84,21 +84,21 @@ async function upload(res,req) {
     const db = await getDb();
     await checkQuestions(db,req,quizName,questionNumber);  
     var file = req.files.image;
-    var newData;
     var genName = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
-    var ext=path.parse(file.name).ext
-    var newFileName=genName+ext;
-    await sharp(file.data).resize(360, 360, {  fit: sharp.fit.inside, withoutEnlargement: true }).toBuffer().then ( data => { newData=data;} ) ;
+   // var ext=path.parse(file.name).ext
+    var ext=mime.extension(file.mimetype); 
+    var newFileName=genName+"."+ext;
+    var newData = await sharp(file.data).resize(360, 360, {  fit: sharp.fit.inside, withoutEnlargement: true }).toBuffer();
     const metadata = await sharp(newData).metadata();
     var cc= await getDirSize(quizName);
     cc.size+=newData.length;
     if ( cc.size >= 2000000 ) throw Error("Visan kuvien tallenustila täysi");
     if ( cc.count >= 30 )  throw Error("Maksimimäärä (30) kuvia ylitetty");
-  
+    
     await putObject(quizName+"/images/"+newFileName, newData, newData.length);
     await updateImageToQuiz(db,req,quizName,questionNumber,newFileName,metadata); 
 
-    res.json({error:"Kuva "+file.name+" lisätty.", done:newFileName, width:metadata.width, height:metadata.height});
+    res.json({error:"Kuva "+newFileName+" lisätty.", done:newFileName, width:metadata.width, height:metadata.height});
     }
     catch (error) { 
       console.log(error); 
