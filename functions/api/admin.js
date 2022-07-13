@@ -228,9 +228,8 @@ async function editQuiz(res,req) {
                 
                 await addQuizToUser(req.user.email,quizName,db);
                 await questionCollection.replaceOne(query,req.body,options);
-                const remImages = removeImageFiles(quizName,req.body);
-                const remAudio = removeAudioFiles(quizName,req.body);
-                await Promise.all([remImages,remAudio])
+                await removeImageFiles(quizName,req.body);
+                await removeAudioFiles(quizName,req.body);
                 let error="Visa "+quizName+" tallennettu.";
                 console.log(error);
                 res.json({error});
