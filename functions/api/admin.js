@@ -228,8 +228,9 @@ async function editQuiz(res,req) {
                 
                 await addQuizToUser(req.user.email,quizName,db);
                 await questionCollection.replaceOne(query,req.body,options);
-                await removeImageFiles(quizName,req.body);
-                await removeAudioFiles(quizName,req.body);
+                const remImages=removeFiles(quizName,"images","image",req.body);
+                const remAudio=removeFiles(quizName,"audio","audio",req.body);
+                await Promise.all([remImages,remAudio]);
                 let error="Visa "+quizName+" tallennettu.";
                 console.log(error);
                 res.json({error});
@@ -245,59 +246,28 @@ async function removeDir(quizName)
 {
     try {
     console.log("removeDir "+quizName);
-    dirFiles = [];
-    data= await listObjects(quizName+"/");
+    const dirFiles = [];
+    const data= await listObjects(quizName+"/");
     data.Contents.forEach(function(d) { dirFiles.push(d.Key) } );
     if ( dirFiles.length > 0 ) 
         await deleteObjects(dirFiles);
     } catch(error) {  throw (error) }
 }
 
-async function removeImageFiles(quizName,body) {
-try {
-  dirFiles = [];
-  data= await listObjects(quizName+"/images/");
-  data.Contents.forEach(function(d) { dirFiles.push(d.Key) } );
-  modFiles = [];
-  body.questions.forEach(function(d) {  
-        if ( d.image )
-            modFiles.push(quizName+"/images/"+d.image) } 
-      );
-   rFiles = []; 
-    dirFiles.forEach( function(d) {
-        if ( !modFiles.includes(d) )
-         rFiles.push(d);
-    });
-    if ( rFiles.length > 0 ) 
-        await deleteObjects(rFiles);
-    console.log("Poistetaan : ");
-    console.log(rFiles);
-} catch(error) {  throw (error) }
-}
-
-
-async function removeAudioFiles(quizName,body) {
+async function removeFiles(quizName,dir,tag,body) {
     try {
-      dirFiles = [];
-      data= await listObjects(quizName+"/audio/");
-      data.Contents.forEach(function(d) { dirFiles.push(d.Key) } );
-      modFiles = [];
-      body.questions.forEach(function(d) {   
-            if ( d.audio )
-                modFiles.push(quizName+"/audio/"+d.audio) } 
-          );
-       rFiles = []; 
-        dirFiles.forEach( function(d) {
-            if ( !modFiles.includes(d) )
-             rFiles.push(d);
-        });
+        const data= await listObjects(quizName+"/"+dir+"/");
+        const dirFiles = data.Contents.map( d=>d.Key );
+        const modFilesTag = body.questions.filter(d=>d[tag]);
+        const modFiles = modFilesTag.map(d=>quizName+"/"+dir+"/"+d[tag]);
+        const rFiles = dirFiles.filter(d=>!modFiles.includes(d));
         if ( rFiles.length > 0 ) 
             await deleteObjects(rFiles);
         console.log("Poistetaan : ");
         console.log(rFiles);
     } catch(error) {  throw (error) }
-    }
-
+}
+ 
 async function deleteQuizFromUser(email,quizName,db)
 {
     try {
