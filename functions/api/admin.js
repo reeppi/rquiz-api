@@ -47,8 +47,8 @@ async function rename(res,req) {
         await deleteQuizFromUser(email,quizName,db); // ;)
         await addQuizToUser(email,toQuizName,db);  // ;)
         
-        dataDir= await listObjects(quizName+"/");
-        var promises = [];
+        const dataDir= await listObjects(quizName+"/");
+        const promises = [];
         for (const s of dataDir.Contents) {
             var d=s.Key.split("/");
             d.splice(0,1);
